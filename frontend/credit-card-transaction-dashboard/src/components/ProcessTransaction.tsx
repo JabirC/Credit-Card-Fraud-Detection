@@ -61,7 +61,9 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
           Papa.parse(csvData, {
             header: true,
             skipEmptyLines: true,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             complete: (results: any) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const filteredTransactions = results.data.map((row: any) => ({
                 trans_date_trans_time: row.trans_date_trans_time,
                 amt: row.amt,
@@ -83,6 +85,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
               }));
               resolve(filteredTransactions);
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             error: (error: any) => {
               reject(error);
             },
@@ -109,8 +112,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
       const result = await response.json(); // Parse the response as JSON
       console.log('Prediction result:', result);
     } catch (error) {
-    //   console.error('Error processing transaction:', error);
-        throw new Error('Error');
+      console.error('Error processing transaction:', error);
     }
   };
 
@@ -149,6 +151,7 @@ export default function ProcessTransaction() {
           description: `Transaction ${selectedTransaction.id} has been successfully processed.`,
           duration: 5000,
         });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         toast({
           title: "Processing Failed",

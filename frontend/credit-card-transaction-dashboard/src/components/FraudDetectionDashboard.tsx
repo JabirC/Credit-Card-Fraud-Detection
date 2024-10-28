@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -52,7 +52,7 @@ const getLLMExplanation = async (transaction: Transaction) => {
 }
 
 export default function FraudDetectionDashboard() {
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+//   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [explanation, setExplanation] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' })
@@ -81,7 +81,7 @@ export default function FraudDetectionDashboard() {
   });
 
   const handleTransactionClick = async (transaction: Transaction) => {
-    setSelectedTransaction(transaction)
+    // setSelectedTransaction(transaction)
     setIsLoading(true)
     const explanation = await getLLMExplanation(transaction)
     setExplanation(explanation)
