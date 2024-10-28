@@ -1,10 +1,24 @@
 'use client'
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Import ShadCN components
-import DashboardPage from "./dashboard/page";
+import FraudDetectionDashboard from "@/components/FraudDetectionDashboard";
 import ProcessTransaction from "@/components/ProcessTransaction";
 
+interface Transaction {
+  id: number;
+  date: string;
+  amount: number;
+  merchant: string;
+  cardLast4: string;
+}
+
+
 export default function Home() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const handleTransactionSubmit = (transaction: Transaction) => {
+    setTransactions((prevTransactions) => [...prevTransactions, transaction]);
+  };
   const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
@@ -33,10 +47,10 @@ export default function Home() {
         {/* Content */}
         <div className="flex-1 bg-white p-6 rounded-md">
           <TabsContent value="dashboard">
-            <DashboardPage />
+            <FraudDetectionDashboard transactions={transactions} />
           </TabsContent>
           <TabsContent value="blank">
-            <ProcessTransaction />
+            <ProcessTransaction onSubmitTransaction={handleTransactionSubmit}/>
           </TabsContent>
         </div>
       </Tabs>

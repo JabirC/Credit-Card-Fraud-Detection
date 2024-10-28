@@ -1,5 +1,5 @@
-import FraudDetectionDashboard from '@/components/FraudDetectionDashboard'
+// import FraudDetectionDashboard from '@/components/FraudDetectionDashboard'
 
-export default function DashboardPage() {
-  return <FraudDetectionDashboard />
-}
+// export default function DashboardPage() {
+//   return <FraudDetectionDashboard />
+// }

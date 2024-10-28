@@ -18,11 +18,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Papa from 'papaparse'
 
 interface Transaction {
-  id: string;
-  date: string;
-  amount: string;
-  merchant: string;
-  cardLast4: string;
+    id: string;
+    date: string;
+    amount: number;
+    merchant: string;
+    cardLast4: string;
+}
+  
+
+interface ProcessTransactionProps {
+    onSubmitTransaction: (transaction: Transaction) => void;
 }
 
 // Simulated function to read transactions from a CSV file
@@ -76,7 +81,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
                 merch_lat: row.merch_lat,
                 merch_long: row.merch_long,
                 date: row.trans_date_trans_time,
-                amount: row.amt,
+                amount: parseFloat(row.amt),
                 merchant: row.merchant.slice(6),
                 category: row.category,
                 gender: row.gender,
@@ -96,7 +101,6 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
   };
   
   const processTransaction = async (transaction: Transaction): Promise<void> => {
-    try {
       const response = await fetch('http://ec2-18-218-234-68.us-east-2.compute.amazonaws.com:81/predict', {
         method: 'POST',
         headers: {
@@ -104,24 +108,23 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
         },
         body: JSON.stringify(transaction),  // Convert transaction object to JSON
       });
-  
+      console.log(JSON.stringify(transaction))
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
   
       const result = await response.json(); // Parse the response as JSON
+      if(result.Prediction[0] == 1) throw new Error('Failed Transaction');
       console.log('Prediction result:', result);
-    } catch (error) {
-      console.error('Error processing transaction:', error);
-    }
   };
 
-export default function ProcessTransaction() {
+export default function ProcessTransaction({ onSubmitTransaction }: any) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isProcessed, setIsProcessed] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -137,12 +140,21 @@ export default function ProcessTransaction() {
     const transaction = transactions.find(t => t.id === transactionId);
     setSelectedTransaction(transaction || null);
     setIsProcessed(false);
+    setIsFailed(false);
+  };
+
+  const handleSubmit = () => {
+    if(selectedTransaction != null) {
+        onSubmitTransaction(selectedTransaction);
+        console.log(selectedTransaction)
+    }
   };
 
   const handleProcess = async () => {
     if (selectedTransaction) {
         setIsProcessing(true);
         setIsProcessed(false);
+        setIsFailed(false)
       try {
         await processTransaction(selectedTransaction);
         setIsProcessed(true);
@@ -153,6 +165,8 @@ export default function ProcessTransaction() {
         });
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
+        setIsFailed(true);
+        handleSubmit();
         toast({
           title: "Processing Failed",
           description: "An error occurred while processing the transaction. Please try again.",
@@ -189,7 +203,7 @@ export default function ProcessTransaction() {
             </SelectTrigger>
             <SelectContent>
               {transactions.map((transaction) => (
-                <SelectItem key={transaction.id} value={transaction.id}>
+                <SelectItem key={transaction.id} value={String(transaction.id)}>
                   {transaction.date} - ${transaction.amount} - {transaction.merchant}
                 </SelectItem>
               ))}
@@ -240,6 +254,14 @@ export default function ProcessTransaction() {
             <AlertTitle className="text-green-800">Success</AlertTitle>
             <AlertDescription className="text-green-700">
               Transaction {selectedTransaction?.id} has been successfully processed.
+            </AlertDescription>
+          </Alert>
+        )}
+        {isFailed && (
+          <Alert className="bg-red-100 border-red-500">
+            <AlertTitle className="text-red-800">Failed</AlertTitle>
+            <AlertDescription className="text-red-700">
+              There was an error processing transaction {selectedTransaction?.id}.
             </AlertDescription>
           </Alert>
         )}
