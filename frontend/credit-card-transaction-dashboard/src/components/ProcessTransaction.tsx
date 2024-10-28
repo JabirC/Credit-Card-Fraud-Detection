@@ -72,7 +72,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
               const filteredTransactions = results.data.map((row: any) => ({
                 trans_date_trans_time: row.trans_date_trans_time,
                 amt: row.amt,
-                id: row.trans_num,
+                id: String(row.trans_num),
                 dob: row.dob,
                 zip: row.zip,
                 lat: row.lat,

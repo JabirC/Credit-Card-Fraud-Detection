@@ -5,7 +5,7 @@ import FraudDetectionDashboard from "@/components/FraudDetectionDashboard";
 import ProcessTransaction from "@/components/ProcessTransaction";
 
 interface Transaction {
-  id: number;
+  id: string;
   date: string;
   amount: number;
   merchant: string;
