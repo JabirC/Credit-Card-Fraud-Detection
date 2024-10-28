@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"; // Import ShadCN components
 import DashboardPage from "./dashboard/page";
+import ProcessTransaction from "@/components/ProcessTransaction";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -25,7 +26,7 @@ export default function Home() {
               activeTab === "blank" ? "bg-blue-600 text-white" : ""
             }`}
           >
-            Transaction
+            Transactions
           </TabsTrigger>
         </TabsList>
 
@@ -35,7 +36,7 @@ export default function Home() {
             <DashboardPage />
           </TabsContent>
           <TabsContent value="blank">
-            <div className="text-center text-gray-500">This is a blank page.</div>
+            <ProcessTransaction />
           </TabsContent>
         </div>
       </Tabs>
