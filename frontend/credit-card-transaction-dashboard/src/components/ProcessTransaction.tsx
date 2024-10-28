@@ -55,7 +55,7 @@ interface Transaction {
 const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
     return new Promise((resolve, reject) => {
       // Fetch the CSV file
-      fetch('/data/Transactions.csv')
+      fetch('/data/transactions.csv')
         .then((response) => response.text())
         .then((csvData) => {
           Papa.parse(csvData, {
