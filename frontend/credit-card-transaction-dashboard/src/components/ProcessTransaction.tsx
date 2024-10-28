@@ -118,7 +118,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
       console.log('Prediction result:', result);
   };
 
-export default function ProcessTransaction({ onSubmitTransaction }: any) {
+export default function ProcessTransaction({ onSubmitTransaction }: ProcessTransactionProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
