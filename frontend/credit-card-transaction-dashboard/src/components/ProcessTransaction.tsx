@@ -195,7 +195,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
   };
   
   const processTransaction = async (transaction: Transaction, pastTransactions: Transaction[]): Promise<void> => {
-      const response = await fetch('http://ec2-18-218-234-68.us-east-2.compute.amazonaws.com:81/predict', {
+      const response = await fetch('/api/predict', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
