@@ -1,5 +1,9 @@
 'use client'
+import Groq from "groq-sdk";
+import * as dotenv from 'dotenv';
+dotenv.config();
 
+  
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,11 +22,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Papa from 'papaparse'
 
 interface Transaction {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fraud: any;
     id: string;
     date: string;
     amount: number;
     merchant: string;
     cardLast4: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reason: any
 }
   
 
@@ -31,33 +39,118 @@ interface ProcessTransactionProps {
 }
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-// Simulated function to read transactions from a CSV file
-// const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
-//   // In a real application, this would read from an actual CSV file
-//   // For demonstration, we're returning a Promise to simulate an async operation
-//   return new Promise((resolve) => {
-//     setTimeout(() => {
-//       resolve([
-//         { id: '1', date: '2023-05-01', amount: '1500.00', merchant: 'Online Electronics Store', cardLast4: '1234' },
-//         { id: '2', date: '2023-05-02', amount: '2000.00', merchant: 'Foreign Travel Agency', cardLast4: '5678' },
-//         { id: '3', date: '2023-05-03', amount: '3000.00', merchant: 'Luxury Goods Shop', cardLast4: '9012' },
-//         { id: '4', date: '2023-05-04', amount: '500.00', merchant: 'Local Grocery Store', cardLast4: '3456' },
-//         { id: '5', date: '2023-05-05', amount: '1200.00', merchant: 'Online Clothing Retailer', cardLast4: '7890' },
-//       ]);
-//     }, 1000); // Simulate a 1-second delay
-//   });
-// }
-// "trans_date_trans_time": "2020-06-21 22:14:25", 
-// "dob": "1990-01-17", 
-// "amt": 1199.84, 
-// "zip": 51002, 
-// "lat": 33.9659, 
-// "long": -80.9355, 
-// "city_pop": 333497, 
-// "merch_lat": 33.986391, 
-// "merch_long": -81.200714, 
-// "category": "personal_care", 
-// "gender": "M"
+
+const groq = new Groq({ apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY, dangerouslyAllowBrowser: true  });
+
+
+
+const createLLMPrompt = (currentTransaction: Transaction,pastTransactions: Transaction[]): string => {
+    let prompt = `
+        You are an AI assistant helping to detect credit card fraud. Below, you will be provided a new transaction and a list of past transactions made by the same person. Based on these transactions, you need to determine whether the new transaction is consistent with the user's past behavior or if it is unusual enough to be considered fraudulent.
+        
+        - Analyze patterns in transaction amounts, locations, merchant categories, and other relevant details.
+        - Consider whether the new transaction deviates significantly from past transactions in terms of amount, time, location, or merchant.
+        - Provide a final decision: if the new transaction seems consistent with past behavior, return 0 meaning it is not fraudulent. If it seems suspicious and likely fraudulent, return 1.
+        
+        New Transaction:
+        - Date: ${currentTransaction.date}
+        - Amount: ${currentTransaction.amount}
+        - Merchant: ${currentTransaction.merchant}
+        - More meta Data: ${currentTransaction}
+        
+        Past Transactions:
+        `;
+        
+            pastTransactions.forEach((transaction, index) => {
+            prompt += `
+        Transaction ${index + 1}:
+        - Date: ${transaction.date}
+        - Amount: ${transaction.amount}
+        - Merchant: ${transaction.merchant}
+        - Was Fraud: ${transaction.fraud}
+        - More meta Data: ${transaction}
+        `;
+            });
+        
+            prompt += `
+        Based on this information, is the new transaction fraudulent? Provide your decision: 0 for not fraudulent, or 1 for fraudulent.
+
+        Deliverable: JSON format, two fields:
+            Decision: with 0 or 1
+            Reasoning: Detailed paragraph explanation for decision
+
+        Only return the JSON, nothing else
+        `;
+        
+        return prompt;
+  };
+
+
+
+  const describeFraudLLMPrompt = (currentTransaction: Transaction,pastTransactions: Transaction[]): string => {
+    let prompt = `
+        You are an AI assistant helping to explain why a transaction is fraudulent.
+        
+        - Analyze patterns in transaction amounts, locations, merchant categories, and other relevant details.
+        - Consider whether the new transaction deviates significantly from past transactions in terms of amount, time, location, or merchant.
+        - Provide a reasoning for why this transaction is fraudulent
+        
+        New Transaction:
+        - Date: ${currentTransaction.date}
+        - Amount: ${currentTransaction.amount}
+        - Merchant: ${currentTransaction.merchant}
+        - More meta Data: ${currentTransaction}
+        
+        Past Transactions:
+        `;
+        
+            pastTransactions.forEach((transaction, index) => {
+            prompt += `
+        Transaction ${index + 1}:
+        - Date: ${transaction.date}
+        - Amount: ${transaction.amount}
+        - Merchant: ${transaction.merchant}
+        - Was Fraud: ${transaction.fraud}
+        - More meta Data: ${transaction}
+        `;
+            });
+        
+            prompt += `
+
+        Deliverable: JSON format, one fields:
+            Reasoning: Detailed paragraph explanation for why transaction is fraudulent
+
+        Only return the JSON, nothing else
+        `;
+        
+        return prompt;
+  };
+
+  export async function getGroqChatCompletion(currentTransaction: Transaction, pastTransactions: Transaction[]) {
+      return groq.chat.completions.create({
+        messages: [
+          {
+            role: "user",
+            content: createLLMPrompt(currentTransaction, pastTransactions),
+          },
+        ],
+        model: "mixtral-8x7b-32768",
+      });
+    }
+
+    export async function getFraudExplanation(currentTransaction: Transaction, pastTransactions: Transaction[]) {
+        return groq.chat.completions.create({
+          messages: [
+            {
+              role: "user",
+              content: describeFraudLLMPrompt(currentTransaction, pastTransactions),
+            },
+          ],
+          model: "mixtral-8x7b-32768",
+        });
+      }
+  
+
 const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
     return new Promise((resolve, reject) => {
       // Fetch the CSV file
@@ -86,8 +179,8 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
                 merchant: row.merchant.slice(6),
                 category: row.category,
                 gender: row.gender,
+                fraud: row.is_fraud,
                 cardLast4: row.cc_num.slice(-4), // Get last 4 digits of card number
-                fraud: row.is_fraud
               }));
               resolve(filteredTransactions);
             },
@@ -101,7 +194,7 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
     });
   };
   
-  const processTransaction = async (transaction: Transaction): Promise<void> => {
+  const processTransaction = async (transaction: Transaction, pastTransactions: Transaction[]): Promise<void> => {
       const response = await fetch('http://ec2-18-218-234-68.us-east-2.compute.amazonaws.com:81/predict', {
         method: 'POST',
         headers: {
@@ -115,8 +208,24 @@ const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
       }
   
       const result = await response.json(); // Parse the response as JSON
-      if(result.Prediction[0] == 1) throw new Error('Failed Transaction');
       console.log('Prediction result:', result);
+      if(result.Prediction[0] == 1){
+        if (result.Probability[0][1] <= 0.7){
+            const response = await getGroqChatCompletion(transaction, pastTransactions);
+            const json_response = JSON.parse(response.choices[0]?.message?.content || " ")
+            if (json_response.Decision == 1){
+                transaction.reason = json_response.Reasoning
+                throw new Error('Failed Transaction');
+            }
+        }
+        else {
+            const response = await getFraudExplanation(transaction, pastTransactions);
+            const json_response = JSON.parse(response.choices[0]?.message?.content || " ")
+            console.log(json_response);
+            transaction.reason = json_response.Reasoning
+            throw new Error('Failed Transaction');
+        }
+      } 
   };
 
 export default function ProcessTransaction({ onSubmitTransaction }: ProcessTransactionProps) {
@@ -139,6 +248,7 @@ export default function ProcessTransaction({ onSubmitTransaction }: ProcessTrans
 
   const handleTransactionSelect = (transactionId: string) => {
     const transaction = transactions.find(t => t.id === transactionId);
+    console.log(transaction);
     setSelectedTransaction(transaction || null);
     setIsProcessed(false);
     setIsFailed(false);
@@ -147,7 +257,6 @@ export default function ProcessTransaction({ onSubmitTransaction }: ProcessTrans
   const handleSubmit = () => {
     if(selectedTransaction != null) {
         onSubmitTransaction(selectedTransaction);
-        console.log(selectedTransaction)
     }
   };
 
@@ -157,7 +266,7 @@ export default function ProcessTransaction({ onSubmitTransaction }: ProcessTrans
         setIsProcessed(false);
         setIsFailed(false)
       try {
-        await processTransaction(selectedTransaction);
+        await processTransaction(selectedTransaction, transactions.filter(t => t.id === selectedTransaction.id));
         await wait(2000);
         setIsProcessed(true);
         toast({

@@ -10,6 +10,8 @@ interface Transaction {
   amount: number;
   merchant: string;
   cardLast4: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reason: any;
 }
 
 

@@ -14,18 +14,7 @@ import {
     DialogTrigger,
   } from "@/components/ui/dialog"
 
-// Mock function to simulate fetching LLM explanation
-const getLLMExplanation = async (transaction: Transaction) => {
-    // In a real application, this would call your backend API which would then use an LLM
-    await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
-    return `This transaction was flagged as potentially fraudulent due to several factors:
-    1. Unusual merchant: The transaction was made at ${transaction.merchant}, which is not consistent with the cardholder's typical spending patterns.
-    2. High amount: The transaction amount of $${transaction.amount} is significantly higher than the average transaction amount for this card.
-    3. Timing: This transaction occurred outside of the cardholder's usual active hours.
-    4. Location: The transaction location doesn't match the cardholder's known locations.
-    
-    These factors combined triggered our fraud detection algorithm. However, please note that this is an initial assessment and may require further investigation.`
-  }
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 interface Transaction {
   id: string;
@@ -33,6 +22,8 @@ interface Transaction {
   amount: number;
   merchant: string;
   cardLast4: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reason: any
 }
 
 interface FraudDetectionDashboardProps {
@@ -40,7 +31,6 @@ interface FraudDetectionDashboardProps {
 }
 
 export default function FraudDetectionDashboard({ transactions }: FraudDetectionDashboardProps) {
-  const [explanation, setExplanation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
@@ -63,10 +53,9 @@ export default function FraudDetectionDashboard({ transactions }: FraudDetection
     return 0;
   });
 
-  const handleTransactionClick = async (transaction: Transaction) => {
+  const handleTransactionClick = async () => {
     setIsLoading(true);
-    const explanation = await getLLMExplanation(transaction);
-    setExplanation(explanation);
+    await wait(1000);
     setIsLoading(false);
   };
 
@@ -111,7 +100,7 @@ export default function FraudDetectionDashboard({ transactions }: FraudDetection
                 <TableCell>
                  <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" onClick={() => handleTransactionClick(transaction)}>Details</Button>
+                      <Button variant="outline" onClick={() => handleTransactionClick()}>Details</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
@@ -142,7 +131,7 @@ export default function FraudDetectionDashboard({ transactions }: FraudDetection
                           {isLoading ? (
                             <p>Loading analysis...</p>
                           ) : (
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{explanation}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{transaction.reason}</p>
                           )}
                         </div>
                       </div>
