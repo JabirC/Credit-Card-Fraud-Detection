@@ -30,6 +30,7 @@ interface ProcessTransactionProps {
     onSubmitTransaction: (transaction: Transaction) => void;
 }
 
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Simulated function to read transactions from a CSV file
 // const readTransactionsFromCSV = async (): Promise<Transaction[]> => {
 //   // In a real application, this would read from an actual CSV file
@@ -157,6 +158,7 @@ export default function ProcessTransaction({ onSubmitTransaction }: ProcessTrans
         setIsFailed(false)
       try {
         await processTransaction(selectedTransaction);
+        await wait(2000);
         setIsProcessed(true);
         toast({
           title: "Transaction Processed",
@@ -165,6 +167,7 @@ export default function ProcessTransaction({ onSubmitTransaction }: ProcessTrans
         });
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
+        await wait(2000);
         setIsFailed(true);
         handleSubmit();
         toast({
